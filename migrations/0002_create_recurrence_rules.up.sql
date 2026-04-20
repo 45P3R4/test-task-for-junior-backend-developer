@@ -13,18 +13,6 @@ CREATE TABLE IF NOT EXISTS recurrence_rules (
         FOREIGN KEY (task_id) 
         REFERENCES tasks(id) 
         ON DELETE CASCADE,
-    
-    CONSTRAINT check_recurrence_type 
-        CHECK (recurrence_type IN ('daily', 'weekly', 'monthly', 'monthend')),
-    
-    CONSTRAINT check_recurrence_modifier 
-        CHECK (recurrence_modifiers <@ ARRAY['oddly', 'evenly', 'weekdays', 'weekends']::TEXT[]),
-    
-    CONSTRAINT check_max_occurrences_positive 
-        CHECK (max_occurrences IS NULL OR max_occurrences > 0),
-    
-    CONSTRAINT check_interval_positive 
-        CHECK (interval IS NULL OR interval > 0)
 );
 
 CREATE INDEX IF NOT EXISTS idx_recurrence_task_id ON recurrence_rules (task_id);
