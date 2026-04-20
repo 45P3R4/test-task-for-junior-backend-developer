@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-func (r *RecurrenceRule) Scan(value interface{}) error {
+func (r RecurrenceRule) Scan(value interface{}) error {
 	if value == nil {
 		return nil
 	}

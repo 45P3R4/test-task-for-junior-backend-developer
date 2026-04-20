@@ -21,7 +21,7 @@ func NewRepository(pool *pgxpool.Pool) *RecurrenceRepository {
 }
 
 func (r *RecurrenceRepository) Create(ctx context.Context, rule *recurrencedomain.RecurrenceRule) (*recurrencedomain.RecurrenceRule, error) {
-	query := `
+	const query = `
 		INSERT INTO recurrence_rules (task_id, recurrence_type, recurrence_modifiers, end_date, max_occurrences, interval, days, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING task_id, recurrence_type, recurrence_modifiers, end_date, max_occurrences, interval, days, created_at, updated_at`
@@ -47,7 +47,7 @@ func (r *RecurrenceRepository) Create(ctx context.Context, rule *recurrencedomai
 }
 
 func (r *RecurrenceRepository) GetByTaskID(ctx context.Context, taskID int64) (*recurrencedomain.RecurrenceRule, error) {
-	query := `
+	const query = `
 		SELECT task_id, recurrence_type, recurrence_modifiers, end_date, max_occurrences, interval, days, created_at, updated_at
 		FROM recurrence_rules
 		WHERE task_id = $1`
@@ -65,7 +65,7 @@ func (r *RecurrenceRepository) GetByTaskID(ctx context.Context, taskID int64) (*
 }
 
 func (r *RecurrenceRepository) Update(ctx context.Context, rule *recurrencedomain.RecurrenceRule) (*recurrencedomain.RecurrenceRule, error) {
-	query := `
+	const query = `
 		UPDATE recurrence_rules
 		SET recurrence_type = $1,
 			recurrence_modifiers = $2,
@@ -100,7 +100,7 @@ func (r *RecurrenceRepository) Update(ctx context.Context, rule *recurrencedomai
 }
 
 func (r *RecurrenceRepository) Delete(ctx context.Context, taskID int64) error {
-	query := `DELETE FROM recurrence_rules WHERE task_id = $1`
+	const query = `DELETE FROM recurrence_rules WHERE task_id = $1`
 
 	result, err := r.pool.Exec(ctx, query, taskID)
 	if err != nil {

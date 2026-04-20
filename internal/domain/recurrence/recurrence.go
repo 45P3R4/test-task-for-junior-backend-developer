@@ -25,7 +25,7 @@ const (
 type RecurrenceRule struct {
 	TaskID              int64                `json:"task_id"`
 	RecurrenceType      RecurrenceType       `json:"recurrence_type"`
-	RecurrenceModifiers []RecurrenceModifier `json:"recurrence_modifier"`
+	RecurrenceModifiers []RecurrenceModifier `json:"recurrence_modifiers"`
 	EndDate             *time.Time           `json:"end_date,omitempty"`
 	MaxOccurrences      *int                 `json:"max_occurrences,omitempty"`
 	Interval            *int                 `json:"interval,omitempty"` // Every N days

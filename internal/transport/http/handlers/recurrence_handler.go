@@ -32,11 +32,6 @@ func (h *RecurrenceHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.RecurrenceType == "" {
-		writeError(w, http.StatusBadRequest, errors.New("recurrence_type is required"))
-		return
-	}
-
 	input := recurrenceusecase.CreateUpdateInput{
 		TaskID:              taskID,
 		RecurrenceType:      req.RecurrenceType,

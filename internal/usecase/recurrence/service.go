@@ -24,7 +24,7 @@ func NewService(repo Repository, taskRepo task.Repository) *Service {
 }
 
 func (s *Service) Create(ctx context.Context, input CreateUpdateInput, taskID int64) (*recurrencedomain.RecurrenceRule, error) {
-	normalized, err := s.validateInput(input)
+	err := s.validateInput(input)
 	if err != nil {
 		return nil, err
 	}
@@ -33,20 +33,14 @@ func (s *Service) Create(ctx context.Context, input CreateUpdateInput, taskID in
 		return nil, fmt.Errorf("%w: task not found", ErrInvalidInput)
 	}
 
-	recurrenceType := recurrencedomain.RecurrenceType(normalized.RecurrenceType)
-	modifiers := make([]recurrencedomain.RecurrenceModifier, len(normalized.RecurrenceModifiers))
-	for i, m := range normalized.RecurrenceModifiers {
-		modifiers[i] = recurrencedomain.RecurrenceModifier(m)
-	}
-
 	model := &recurrencedomain.RecurrenceRule{
 		TaskID:              taskID,
-		RecurrenceType:      recurrenceType,
-		RecurrenceModifiers: modifiers,
-		EndDate:             normalized.EndDate,
-		MaxOccurrences:      normalized.MaxOccurrences,
-		Interval:            normalized.Interval,
-		Days:                normalized.Days,
+		RecurrenceType:      input.RecurrenceType,
+		RecurrenceModifiers: input.RecurrenceModifiers,
+		EndDate:             input.EndDate,
+		MaxOccurrences:      input.MaxOccurrences,
+		Interval:            input.Interval,
+		Days:                input.Days,
 	}
 
 	now := s.now()
@@ -63,7 +57,7 @@ func (s *Service) Create(ctx context.Context, input CreateUpdateInput, taskID in
 
 func (s *Service) GetByTaskID(ctx context.Context, taskID int64) (*recurrencedomain.RecurrenceRule, error) {
 	if taskID <= 0 {
-		return nil, fmt.Errorf("%w: task_id must be positive", ErrInvalidInput)
+		return nil, fmt.Errorf("%w: %w", ErrInvalidId, ErrInvalidInput)
 	}
 
 	rule, err := s.repo.GetByTaskID(ctx, taskID)
@@ -76,25 +70,19 @@ func (s *Service) GetByTaskID(ctx context.Context, taskID int64) (*recurrencedom
 
 func (s *Service) Update(ctx context.Context, taskID int64, input CreateUpdateInput) (*recurrencedomain.RecurrenceRule, error) {
 
-	normalized, err := s.validateInput(input)
+	err := s.validateInput(input)
 	if err != nil {
 		return nil, err
 	}
 
-	modifiers := make([]recurrencedomain.RecurrenceModifier, 0)
-
-	for _, modifier := range normalized.RecurrenceModifiers {
-		modifiers = append(modifiers, recurrencedomain.RecurrenceModifier(modifier))
-	}
-
 	model := &recurrencedomain.RecurrenceRule{
 		TaskID:              taskID,
-		RecurrenceType:      recurrencedomain.RecurrenceType(normalized.RecurrenceType),
-		RecurrenceModifiers: modifiers,
-		EndDate:             normalized.EndDate,
-		MaxOccurrences:      normalized.MaxOccurrences,
-		Interval:            normalized.Interval,
-		Days:                normalized.Days,
+		RecurrenceType:      input.RecurrenceType,
+		RecurrenceModifiers: input.RecurrenceModifiers,
+		EndDate:             input.EndDate,
+		MaxOccurrences:      input.MaxOccurrences,
+		Interval:            input.Interval,
+		Days:                input.Days,
 		UpdatedAt:           s.now(),
 	}
 
@@ -108,30 +96,30 @@ func (s *Service) Update(ctx context.Context, taskID int64, input CreateUpdateIn
 
 func (s *Service) Delete(ctx context.Context, taskID int64) error {
 	if taskID <= 0 {
-		return fmt.Errorf("%w: task_id must be positive", ErrInvalidInput)
-	}
-
-	if _, err := s.repo.GetByTaskID(ctx, taskID); err != nil {
-		return err
+		return fmt.Errorf("%w: %w", ErrInvalidId, ErrInvalidInput)
 	}
 
 	return s.repo.Delete(ctx, taskID)
 }
 
-func (s *Service) validateInput(input CreateUpdateInput) (CreateUpdateInput, error) {
+func (s *Service) validateInput(input CreateUpdateInput) error {
+
+	if input.TaskID <= 0 {
+		return fmt.Errorf("%w: task_id must be positive", ErrInvalidInput)
+	}
 
 	if input.RecurrenceType == "" {
-		return CreateUpdateInput{}, fmt.Errorf("%w: %w", ErrEmptyType, ErrInvalidInput)
+		return fmt.Errorf("%w: %w", ErrEmptyType, ErrInvalidInput)
 	}
 
 	if !input.RecurrenceType.Valid() {
-		return CreateUpdateInput{}, fmt.Errorf("%w: %w", ErrInvalidType, ErrInvalidInput)
+		return fmt.Errorf("%w: %w", ErrInvalidType, ErrInvalidInput)
 	}
 
 	if input.RecurrenceType == recurrencedomain.RecurrenceWeekly {
 		for _, day := range input.Days {
 			if day < 0 || day > 6 {
-				return CreateUpdateInput{}, fmt.Errorf("%w: %w", ErrWeekly, ErrInvalidInput)
+				return fmt.Errorf("%w: %w", ErrWeekly, ErrInvalidInput)
 			}
 		}
 	}
@@ -139,7 +127,7 @@ func (s *Service) validateInput(input CreateUpdateInput) (CreateUpdateInput, err
 	if input.RecurrenceType == recurrencedomain.RecurrenceMonthly {
 		for _, day := range input.Days {
 			if day < 1 || day > 31 {
-				return CreateUpdateInput{}, fmt.Errorf("%w: %w", ErrMonthly, ErrInvalidInput)
+				return fmt.Errorf("%w: %w", ErrMonthly, ErrInvalidInput)
 			}
 		}
 	}
@@ -149,7 +137,7 @@ func (s *Service) validateInput(input CreateUpdateInput) (CreateUpdateInput, err
 		recurrencedomain.ModifierEven,
 		recurrencedomain.ModifierOdd,
 	) {
-		return CreateUpdateInput{}, fmt.Errorf("%w: %w", ErrOppositeModifiers, ErrInvalidInput)
+		return fmt.Errorf("%w: %w", ErrOppositeModifiers, ErrInvalidInput)
 	}
 
 	if containsOppositeModifiers(
@@ -157,10 +145,10 @@ func (s *Service) validateInput(input CreateUpdateInput) (CreateUpdateInput, err
 		recurrencedomain.ModifierWeekdays,
 		recurrencedomain.ModifierWeekends,
 	) {
-		return CreateUpdateInput{}, fmt.Errorf("%w: %w", ErrOppositeModifiers, ErrInvalidInput)
+		return fmt.Errorf("%w: %w", ErrOppositeModifiers, ErrInvalidInput)
 	}
 
-	return input, nil
+	return nil
 }
 
 func containsOppositeModifiers(modifiers []recurrencedomain.RecurrenceModifier, rule1 recurrencedomain.RecurrenceModifier, rule2 recurrencedomain.RecurrenceModifier) bool {
